@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 L = 4 * np.pi           # Domain length (periodic)
 Ng = 128                # Number of grid points
 N = 100000              # Total number of particles
-dt = 0.1                # Time step (must be < 1/w_pe for stability)
+dt = 0.1                # Time step 
 v_drift = 1.0           # Drift velocity of the two beams
 n_steps = 801           # Number of simulation steps
 
@@ -27,6 +27,9 @@ k_perturb = 2 * np.pi / L
 pos += 0.1 * np.sin(k_perturb * pos)
 pos %= L
 
+history_ke = []    # Kinetic Energy
+history_fe = []    # Field Energy
+history_time = []  
 
 def density(pos, N, Ng, dx):
     
@@ -75,7 +78,6 @@ def push_particles(pos, vel, E, dx, dt, L):
     
     # Push: updates velocities and positions using the Lorentz force.
     
-    # Field interpolation onto particle positions
     idx = np.floor(pos / dx).astype(int)
     frac = (pos / dx) - idx
     E_part = E[idx % Ng] * (1.0 - frac) + E[(idx + 1) % Ng] * frac
@@ -88,7 +90,7 @@ def push_particles(pos, vel, E, dx, dt, L):
     pos %= L
     return pos, vel
 
-# MAIN
+# MAIN LOOP
 for step in range(n_steps):
     
     rho = density(pos, N, Ng, dx)
@@ -100,14 +102,20 @@ for step in range(n_steps):
     # Synchronize velocity for energy calculation
     v_sync = (v_old + vel) / 2.0
     
+    # Energy
+    fe = 0.5 * np.sum(E**2) * dx 
+    ke = 0.5 * (L / N) * np.sum(v_sync**2)
     
-    # VISUALIZATION 
+    history_fe.append(fe)
+    history_ke.append(ke)
+    history_time.append(step * dt)
+
+    # Plot Phase Space (x, v) visualization
     if step % 50 == 0:
         plt.clf()
         fig = plt.gcf()
         fig.set_size_inches(12, 10)
         
-        # Plot Phase Space (x, v)
         skip = 10 
         plt.scatter(pos[:N//2:skip], vel[:N//2:skip], s=5, color='royalblue', alpha=0.6, label='Right Beam')
         plt.scatter(pos[N//2::skip], vel[N//2::skip], s=5, color='crimson', alpha=0.6, label='Left Beam')
@@ -122,3 +130,20 @@ for step in range(n_steps):
 
         plt.tight_layout()
         plt.pause(0.01)
+
+# Energy visualization
+plt.figure(figsize=(10, 6))
+
+h_time = np.array(history_time)
+h_ke = np.array(history_ke)
+h_fe = np.array(history_fe)
+h_total = h_ke + h_fe 
+
+plt.plot(h_time, h_ke, label='Energia Cinetica ($E_{kin}$)', color='blue', lw=2)
+plt.plot(h_time, h_fe, label='Energia Campo ($E_{field}$)', color='red', lw=2)
+plt.plot(h_time, h_total, label='Energia Totale', color='black', linestyle='--', alpha=0.7)
+
+plt.legend()
+plt.grid(True, which="both", ls="-", alpha=0.3)
+
+plt.show()
