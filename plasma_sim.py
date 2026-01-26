@@ -58,7 +58,7 @@ def field(rho, Ng, dx):
     E_k[0] = 0 
     E_k[Ng//2] = 0 
     
-    # Transform back to real space
+    # Transform back
     E = np.real(np.fft.ifft(E_k))
     
     return E
@@ -71,7 +71,7 @@ idx = np.floor(pos / dx).astype(int)
 fracs = (pos / dx) - idx
 E_p = E_0[idx % Ng] * (1.0 - fracs) + E_0[(idx + 1) % Ng] * fracs
 
-# Half-step backward velocity kick
+# Half step backward velocity kick
 vel += E_p * (0.5 * dt) 
 
 def push_particles(pos, vel, E, dx, dt, L):
