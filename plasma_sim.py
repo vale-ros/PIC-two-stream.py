@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 
 L = 4 * np.pi           # Domain length (periodic)
 Ng = 128                # Number of grid points
-N = 100000              # Total number of particles
+N = 400000              # Total number of particles
 dt = 0.1                # Time step 
 v_drift = 1.0           # Drift velocity of the two beams
 n_steps = 801           # Number of simulation steps
@@ -11,29 +11,29 @@ n_steps = 801           # Number of simulation steps
 dx = L / Ng             # Cell size
 x_grid = np.linspace(0, L, Ng, endpoint=False)
 
-# Particle Initialization: Half of the particles move to the right, half to the left
-pos_beam1 = np.linspace(0, L, N//2, endpoint=False)
-pos_beam2 = np.linspace(0, L, N//2, endpoint=False)
+# Particle initialization
+pos = np.random.uniform(0, L, N)
 
-pos = np.concatenate([pos_beam1, pos_beam2])
+# Velocities (two beams)
+vel = np.zeros(N)
+v_thermal = 0.2
 
-# Setting velocities for both beams
-vel = np.ones(N) * v_drift
-vel[:N//2] = v_drift
-vel[N//2:] = -v_drift
+vel[:N//2] = v_drift + (np.random.randn(N//2) * v_thermal)
+vel[N//2:] = -v_drift + (np.random.randn(N//2) * v_thermal)
 
-# Perturbation (for the instability)
+# Perturbation 
 k_perturb = 2 * np.pi / L
+
 pos += 0.1 * np.sin(k_perturb * pos)
 pos %= L
 
 history_ke = []    # Kinetic Energy
 history_fe = []    # Field Energy
-history_time = []  
+history_time = []  # Time steps
 
 def density(pos, N, Ng, dx):
     
-    # Weighting: Calculates charge density on the grid from particle positions.
+    # Calculates charge density on the grid from particle positions
     
     rho = np.zeros(Ng)
     indices = np.floor(pos / dx).astype(int)
@@ -42,7 +42,10 @@ def density(pos, N, Ng, dx):
     np.add.at(rho, indices % Ng, 1.0 - dist)
     np.add.at(rho, (indices + 1) % Ng, dist)
   
-    return (rho * Ng / N) - 1.0 
+    n= (rho * Ng / N)
+    dens = -1.0 * (n-1.0)
+    
+    return dens
 
 def field(rho, Ng, dx):
     
@@ -50,22 +53,29 @@ def field(rho, Ng, dx):
     
     rho_k = np.fft.fft(rho)
     k = np.fft.fftfreq(Ng, d=dx) * 2 * np.pi
-  
+
     # Avoid division by zero at k=0 mode
     k[0] = 1.0           
-  
-    E_k = 1j * rho_k / k
+
+    phi_k = rho_k / (k**2)
+    phi_k[0] = 0 # Il potenziale medio è arbitrario (poniamolo a 0)
+    phi = np.real(np.fft.ifft(phi_k))
+
+    k_fixed = np.copy(k)
+    k_fixed[0] = 1.0
+    E_k = -1j * rho_k / k_fixed
     E_k[0] = 0 
     E_k[Ng//2] = 0 
     
-    # Transform back
+    # Transform back to real space
     E = np.real(np.fft.ifft(E_k))
+    phi = np.real(np.fft.ifft(phi_k))
     
-    return E
+    return E, phi
 
 # Initialization of the Leapfrog method
 rho_0 = density(pos, N, Ng, dx)
-E_0 = field(rho_0, Ng, dx)
+E_0, phi_0= field(rho_0, Ng, dx)
 
 idx = np.floor(pos / dx).astype(int)
 fracs = (pos / dx) - idx
@@ -94,7 +104,7 @@ def push_particles(pos, vel, E, dx, dt, L):
 for step in range(n_steps):
     
     rho = density(pos, N, Ng, dx)
-    E = field(rho, Ng, dx)
+    E, phi = field(rho, Ng, dx)
 
     v_old = np.copy(vel)
     pos, vel = push_particles(pos, vel, E, dx, dt, L)
@@ -110,7 +120,7 @@ for step in range(n_steps):
     history_ke.append(ke)
     history_time.append(step * dt)
 
-    # Plot Phase Space (x, v) visualization
+    # Plot Phase Space (x, v)
     if step % 50 == 0:
         plt.clf()
         fig = plt.gcf()
@@ -146,4 +156,35 @@ plt.plot(h_time, h_total, label='Energia Totale', color='black', linestyle='--',
 plt.legend()
 plt.grid(True, which="both", ls="-", alpha=0.3)
 
+plt.show()
+
+plt.figure(figsize=(12, 5))
+
+# Velocity Histogram
+plt.subplot(1, 2, 1)
+plt.hist(vel, bins=100, density=True, color='gray', alpha=0.8, label='Particle dist.')
+plt.title(f"Velocity Histogram (Step {n_steps})")
+plt.xlabel("Velocity (v)")
+plt.ylabel("f(v)")
+plt.xlim(-3, 3) # Adatta in base al tuo v_drift
+plt.grid(True, alpha=0.3)
+
+ax1 = plt.subplot(1, 2, 2)
+
+# Density
+color_rho = 'tab:green'
+ax1.set_xlabel('Position (x)')
+ax1.set_ylabel('Density (rho)', color=color_rho)
+ax1.plot(x_grid, rho, color=color_rho, alpha=0.6, linewidth=1, label='Density')
+ax1.tick_params(axis='y', labelcolor=color_rho)
+
+# Potential
+ax2 = ax1.twinx()  # Crea un secondo asse Y condiviso
+color_phi = 'black'
+ax2.set_ylabel('Potential (phi)', color=color_phi)
+ax2.plot(x_grid, phi, color=color_phi, linewidth=2, label='Potential')
+ax2.tick_params(axis='y', labelcolor=color_phi)
+
+plt.title("Potential (Phi) & Density (Rho)")
+plt.tight_layout()
 plt.show()
