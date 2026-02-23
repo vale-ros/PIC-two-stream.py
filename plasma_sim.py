@@ -6,7 +6,7 @@ Ng = 128                # Number of grid points
 N = 400000              # Total number of particles
 dt = 0.1                # Time step 
 v_drift = 1.0           # Drift velocity of the two beams
-n_steps = 801           # Number of simulation steps
+n_steps = 501           # Number of simulation steps
 
 dx = L / Ng             # Cell size
 x_grid = np.linspace(0, L, Ng, endpoint=False)
@@ -95,7 +95,6 @@ def push_particles(pos, vel, E, dx, dt, L):
     vel -= E_part * dt
     pos += vel * dt
     
-    # Periodic boundary conditions
     pos %= L
     return pos, vel
 
