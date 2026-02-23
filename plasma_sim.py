@@ -58,9 +58,8 @@ def field(rho, Ng, dx):
     k[0] = 1.0           
 
     phi_k = rho_k / (k**2)
-    phi_k[0] = 0 # Il potenziale medio è arbitrario (poniamolo a 0)
-    phi = np.real(np.fft.ifft(phi_k))
-
+    phi_k[0] = 0
+    
     k_fixed = np.copy(k)
     k_fixed[0] = 1.0
     E_k = -1j * rho_k / k_fixed
@@ -149,9 +148,9 @@ h_ke = np.array(history_ke)
 h_fe = np.array(history_fe)
 h_total = h_ke + h_fe 
 
-plt.plot(h_time, h_ke, label='Energia Cinetica ($E_{kin}$)', color='blue', lw=2)
-plt.plot(h_time, h_fe, label='Energia Campo ($E_{field}$)', color='red', lw=2)
-plt.plot(h_time, h_total, label='Energia Totale', color='black', linestyle='--', alpha=0.7)
+plt.plot(h_time, h_ke, label='Kinetic energy ($E_{kin}$)', color='blue', lw=2)
+plt.plot(h_time, h_fe, label='Field energy ($E_{field}$)', color='red', lw=2)
+plt.plot(h_time, h_total, label='Total energy', color='black', linestyle='--', alpha=0.7)
 
 plt.legend()
 plt.grid(True, which="both", ls="-", alpha=0.3)
@@ -166,7 +165,7 @@ plt.hist(vel, bins=100, density=True, color='gray', alpha=0.8, label='Particle d
 plt.title(f"Velocity Histogram (Step {n_steps})")
 plt.xlabel("Velocity (v)")
 plt.ylabel("f(v)")
-plt.xlim(-3, 3) # Adatta in base al tuo v_drift
+plt.xlim(-3, 3) 
 plt.grid(True, alpha=0.3)
 
 ax1 = plt.subplot(1, 2, 2)
@@ -179,7 +178,7 @@ ax1.plot(x_grid, rho, color=color_rho, alpha=0.6, linewidth=1, label='Density')
 ax1.tick_params(axis='y', labelcolor=color_rho)
 
 # Potential
-ax2 = ax1.twinx()  # Crea un secondo asse Y condiviso
+ax2 = ax1.twinx()  
 color_phi = 'black'
 ax2.set_ylabel('Potential (phi)', color=color_phi)
 ax2.plot(x_grid, phi, color=color_phi, linewidth=2, label='Potential')
